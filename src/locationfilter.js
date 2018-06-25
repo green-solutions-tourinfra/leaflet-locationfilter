@@ -91,7 +91,7 @@ L.Control.ButtonContainer = L.Control.extend({
 });
 
 L.LocationFilter = L.Class.extend({
-    includes: L.Mixin.Events,
+    includes: L.Evented,
 
     options: {
         enableButton: {
