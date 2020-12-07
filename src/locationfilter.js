@@ -20,7 +20,7 @@ L.LatLngBounds.prototype.modify = function(map, amount) {
     return new L.LatLngBounds(sw, ne);
 };
 
-L.Control.Button = L.Layer.extend({
+L.Control.Button = L.Class.extend({
     initialize: function(options) {
         L.Util.setOptions(this, options);
     },
@@ -90,7 +90,7 @@ L.Control.ButtonContainer = L.Control.extend({
     }
 });
 
-L.LocationFilter = L.Class.extend({
+L.LocationFilter = L.Layer.extend({
     includes: L.Mixin.Events,
 
     options: {
