@@ -1,6 +1,6 @@
 {
   "name": "leaflet-locationfilter",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Provides a location filter for Leaflet.",
   "main": "src/locationfilter.js",
   "scripts": {
