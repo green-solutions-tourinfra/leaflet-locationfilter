@@ -16,7 +16,7 @@ L.LatLngBounds.prototype.modify = function(map, amount) {
 
     sw = map.layerPointToLatLng(new L.Point(swPoint.x-amount, swPoint.y+amount));
     ne = map.layerPointToLatLng(new L.Point(nePoint.x+amount, nePoint.y-amount));
-    
+
     return new L.LatLngBounds(sw, ne);
 };
 
@@ -29,7 +29,7 @@ L.Control.Button = L.Class.extend({
         container.addButton(this);
         return this;
     },
-    
+
     onAdd: function (buttonContainer) {
         this._buttonContainer = buttonContainer;
         this._button = L.DomUtil.create('a', this.options.className, this._buttonContainer.getContainer());
@@ -101,7 +101,9 @@ L.LocationFilter = L.Layer.extend({
         adjustButton: {
             text: "Select area within current zoom"
         },
-        buttonPosition: 'topleft'
+        buttonPosition: 'topleft',
+        showButtons: true,
+        locked: false,
     },
 
     initialize: function(options) {
@@ -116,7 +118,7 @@ L.LocationFilter = L.Layer.extend({
     onAdd: function(map) {
         this._map = map;
 
-        if (this.options.enableButton || this.options.adjustButton) {
+        if (this.options.showButtons && (this.options.enableButton || this.options.adjustButton)) {
             this._initializeButtonContainer();
         }
 
@@ -133,8 +135,8 @@ L.LocationFilter = L.Layer.extend({
     },
 
     /* Get the current filter bounds */
-    getBounds: function() { 
-        return new L.LatLngBounds(this._sw, this._ne); 
+    getBounds: function() {
+        return new L.LatLngBounds(this._sw, this._ne);
     },
 
     setBounds: function(bounds) {
@@ -150,6 +152,17 @@ L.LocationFilter = L.Layer.extend({
 
     isEnabled: function() {
         return this._enabled;
+    },
+
+    setLocked: function(locked) {
+        this.options.locked = locked;
+        if(locked) {
+            this._moveMarker.dragging.disable();
+            this._moveMarker._icon.classList.add('hide-marker');
+        } else {
+            this._moveMarker.dragging.enable();
+            this._moveMarker._icon.classList.remove('hide-marker');
+        }
     },
 
     /* Draw a rectangle */
@@ -188,7 +201,7 @@ L.LocationFilter = L.Layer.extend({
     _drawMoveMarker: function(point) {
         var that = this;
         this._moveMarker = this._drawImageMarker(point, {
-            "className": "location-filter move-marker",
+            "className": "location-filter move-marker " + (this.options.locked ? 'hide-marker' : ''),
             "anchor": [-10, -10],
             "size": [13,13]
         });
@@ -207,11 +220,11 @@ L.LocationFilter = L.Layer.extend({
     },
 
     /* Draw a resize marker */
-    _drawResizeMarker: function(point, latFollower, lngFollower, otherPos) {
+    _drawResizeMarker: function(point, direction, latFollower, lngFollower, otherPos) {
         return this._drawImageMarker(point, {
-            "className": "location-filter resize-marker",
+            "className": "location-filter resize-marker " + direction,
             "anchor": [7, 6],
-            "size": [13, 12] 
+            "size": [13, 12]
         });
     },
 
@@ -228,9 +241,9 @@ L.LocationFilter = L.Layer.extend({
             latMarker.setLatLng(new L.LatLng(curPosition.lat, latMarker.getLatLng().lng, true));
             lngMarker.setLatLng(new L.LatLng(lngMarker.getLatLng().lat, curPosition.lng, true));
             // Sort marker positions in nw, ne, sw, se order
-            var corners = [that._nwMarker.getLatLng(), 
-                           that._neMarker.getLatLng(), 
-                           that._swMarker.getLatLng(), 
+            var corners = [that._nwMarker.getLatLng(),
+                           that._neMarker.getLatLng(),
+                           that._swMarker.getLatLng(),
                            that._seMarker.getLatLng()];
             corners.sort(function(a, b) {
                 if (a.lat != b.lat)
@@ -304,10 +317,10 @@ L.LocationFilter = L.Layer.extend({
         });
 
         // Create resize markers
-        this._nwMarker = this._drawResizeMarker(this._nw);
-        this._neMarker = this._drawResizeMarker(this._ne);
-        this._swMarker = this._drawResizeMarker(this._sw);
-        this._seMarker = this._drawResizeMarker(this._se);
+        this._nwMarker = this._drawResizeMarker(this._nw, 'nw');
+        this._neMarker = this._drawResizeMarker(this._ne, 'ne');
+        this._swMarker = this._drawResizeMarker(this._sw, 'sw');
+        this._seMarker = this._drawResizeMarker(this._se, 'se');
 
         // Setup tracking of resize markers. Each marker has pair of
         // follower markers that must be moved whenever the marker is
@@ -325,7 +338,7 @@ L.LocationFilter = L.Layer.extend({
         this._initialDrawCalled = true;
     },
 
-    /* Reposition all rectangles and markers to the current filter bounds. */    
+    /* Reposition all rectangles and markers to the current filter bounds. */
     _draw: function(options) {
         options = L.Util.extend({repositionResizeMarkers: true}, options);
 
@@ -349,7 +362,7 @@ L.LocationFilter = L.Layer.extend({
 
         // Reposition the move marker
         this._moveMarker.setLatLng(this._nw);
-    }, 
+    },
 
     /* Adjust the location filter to the current map bounds */
     _adjustToMap: function() {
@@ -377,21 +390,23 @@ L.LocationFilter = L.Layer.extend({
         this._ne = bounds.getNorthEast();
         this._sw = bounds.getSouthWest();
         this._se = bounds.getSouthEast();
-            
+
 
         // Update buttons
-        if (this._buttonContainer) {
-            this._buttonContainer.addClass("enabled");
+        if(this.options.showButtons) {
+            if (this._buttonContainer) {
+                this._buttonContainer.addClass("enabled");
+            }
+
+            if (this._enableButton) {
+                this._enableButton.setText(this.options.enableButton.disableText);
+            }
+
+            if (this.options.adjustButton) {
+                this._createAdjustButton();
+            }
         }
 
-        if (this._enableButton) {
-            this._enableButton.setText(this.options.enableButton.disableText);
-        }
-
-        if (this.options.adjustButton) {
-            this._createAdjustButton();
-        }
-        
         // Draw filter
         this._initialDraw();
         this._draw();
@@ -405,7 +420,7 @@ L.LocationFilter = L.Layer.extend({
 
         // Add the filter layer to the map
         this._layer.addTo(this._map);
-        
+
         // Zoom out the map if necessary
         var mapBounds = this._map.getBounds();
         bounds = new L.LatLngBounds(this._sw, this._ne).modify(this._map, 10);
@@ -414,7 +429,7 @@ L.LocationFilter = L.Layer.extend({
         }
 
         this._enabled = true;
-        
+
         // Fire the enabled event
         this.fire("enabled");
     },
@@ -426,16 +441,18 @@ L.LocationFilter = L.Layer.extend({
         }
 
         // Update buttons
-        if (this._buttonContainer) {
-            this._buttonContainer.removeClass("enabled");
-        }
+        if(this.options.showButtons) {
+            if (this._buttonContainer) {
+                this._buttonContainer.removeClass("enabled");
+            }
 
-        if (this._enableButton) {
-            this._enableButton.setText(this.options.enableButton.enableText);
-        }
+            if (this._enableButton) {
+                this._enableButton.setText(this.options.enableButton.enableText);
+            }
 
-        if (this._adjustButton) {
-            this._adjustButton.remove();
+            if (this._adjustButton) {
+                this._adjustButton.remove();
+            }
         }
 
         // Remove event listener
@@ -457,7 +474,7 @@ L.LocationFilter = L.Layer.extend({
         this._adjustButton = new L.Control.Button({
             className: "adjust-button",
             text: this.options.adjustButton.text,
-            
+
             onClick: function(event) {
                 that._adjustToMap();
                 that.fire("adjustToZoomClick");
