@@ -20,7 +20,7 @@ L.LatLngBounds.prototype.modify = function(map, amount) {
     return new L.LatLngBounds(sw, ne);
 };
 
-L.Control.Button = L.Class.extend({
+L.Control.Button = L.Layer.extend({
     initialize: function(options) {
         L.Util.setOptions(this, options);
     },
