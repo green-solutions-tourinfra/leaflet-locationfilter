@@ -104,6 +104,7 @@ L.LocationFilter = L.Layer.extend({
         buttonPosition: 'topleft',
         showButtons: true,
         locked: false,
+        fixed: false
     },
 
     initialize: function(options) {
@@ -156,12 +157,28 @@ L.LocationFilter = L.Layer.extend({
 
     setLocked: function(locked) {
         this.options.locked = locked;
-        if(locked) {
-            this._moveMarker.dragging.disable();
-            this._moveMarker._icon.classList.add('hide-marker');
+        this._toggleMarkerDragging(this._moveMarker, locked, 'hide-marker');
+    },
+
+    isLocked: function() {
+        return this.options.locked;
+    },
+
+    setFixed: function(fixed) {
+        this.options.fixed = fixed;
+        this._toggleMarkerDragging(this._neMarker, fixed, 'hide-marker');
+        this._toggleMarkerDragging(this._nwMarker, fixed, 'hide-marker');
+        this._toggleMarkerDragging(this._seMarker, fixed, 'hide-marker');
+        this._toggleMarkerDragging(this._swMarker, fixed, 'hide-marker');
+    },
+
+    _toggleMarkerDragging(marker, disable, clazz) {
+        if(disable) {
+            marker.dragging.disable();
+            marker._icon.classList.add(clazz);
         } else {
-            this._moveMarker.dragging.enable();
-            this._moveMarker._icon.classList.remove('hide-marker');
+            marker.dragging.enable();
+            marker._icon.classList.remove(clazz);
         }
     },
 
@@ -222,7 +239,7 @@ L.LocationFilter = L.Layer.extend({
     /* Draw a resize marker */
     _drawResizeMarker: function(point, direction, latFollower, lngFollower, otherPos) {
         return this._drawImageMarker(point, {
-            "className": "location-filter resize-marker " + direction,
+            "className": "location-filter resize-marker " + direction + " " + (this.options.fixed ? 'hide-marker' : ''),
             "anchor": [7, 6],
             "size": [13, 12]
         });

@@ -17,6 +17,9 @@ div.leaflet-marker-icon.location-filter.move-marker {
     background: url( img/move-handle.png ) no-repeat;
     cursor: move;
 }
+div.leaflet-marker-icon.location-filter.move-marker.hide-marker {
+    display: none;
+}
 
 div.location-filter.button-container {
     background: #bfbfbf;
